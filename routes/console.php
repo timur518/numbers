@@ -19,5 +19,4 @@ Schedule::command('direct:sync --days=14')->hourly()->runInBackground();
 Schedule::command('direct:sync')->dailyAt('03:30')->withoutOverlapping()->onOneServer()->runInBackground();
 
 // ночной синк статистики Директа за вчера
-Schedule::command('direct:sync-stats 1 --from='.now()->subDay()->toDateString().' --to='.now()->subDay()->toDateString())
-    ->dailyAt('03:40')->withoutOverlapping()->onOneServer();
+Schedule::command('direct:sync:all --stats')->dailyAt('03:40')->withoutOverlapping()->onOneServer()->runInBackground();
