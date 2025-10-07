@@ -13,8 +13,8 @@ Route::middleware(['auth'])->group(function () {
         ->name('oauth.yandex.callback');
 
     // AmoCRM
-    Route::get('/oauth/amocrm/redirect', [OauthController::class, 'amoRedirect'])
-        ->name('oauth.amocrm.redirect');
+    //Route::get('/oauth/amocrm/redirect', [OauthController::class, 'amoRedirect'])
+    //    ->name('oauth.amocrm.redirect');
     Route::get('/oauth/amocrm/callback', [OauthController::class, 'amoCallback'])
         ->name('oauth.amocrm.callback');
     Route::post('/oauth/amocrm/redirect', [OauthController::class, 'amoRedirect'])

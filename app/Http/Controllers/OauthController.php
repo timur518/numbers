@@ -19,34 +19,35 @@ class OauthController extends Controller
     // ---------- YANDEX ----------
     public function yandexRedirect(Request $request, string $scope)
     {
-        $clientId   = Config::get('services.yandex.client_id');
-        $redirect   = Config::get('services.yandex.redirect');
-        $state      = Str::uuid()->toString();
+        $clientId = config('services.yandex.client_id');
+        $redirect = config('services.yandex.redirect');
+        $state    = Str::uuid()->toString();
 
-        // Сохраняем state и нужный «провайдер» в сессии
         $request->session()->put('oauth.state', $state);
-        // сопоставляем scope->provider
-        $provider = $scope === 'metrika' ? Provider::METRIKA->value : Provider::DIRECT->value;
+
+        // определяем провайдера
+        $provider = $scope === 'metrika' ? \App\Enums\Provider::METRIKA->value : \App\Enums\Provider::DIRECT->value;
         $request->session()->put('oauth.provider', $provider);
 
-        // Scopes
-        // Метрика (чтение): metrika:read
-        // Директ (отчёты/просмотр): yadirect:api or ‘ads:read’. Для v5 Reports доступ даёт общий OAuth токен (проверяешь в кабинете).
-        $scopes = $scope === 'metrika'
-            ? ['metrika:read']
-            : ['direct:read', 'ads:read']; // оставим запас; главное — права у приложения
+        // ВАЖНО:
+        // - Для Метрики можно явно запросить 'metrika:read'
+        // - Для Директа НЕ передаём scope — Яндекс выдаст права по настройкам приложения
+        $scopes = $scope === 'metrika' ? ['metrika:read'] : [];
 
-        $authorizeUrl = Config::get('services.yandex.authorize_url');
-        $query = http_build_query([
+        $authorizeUrl = config('services.yandex.authorize_url');
+        $query = [
             'response_type' => 'code',
             'client_id'     => $clientId,
             'redirect_uri'  => $redirect,
-            'scope'         => implode(' ', $scopes),
             'state'         => $state,
             'force_confirm' => 1,
-        ]);
+        ];
 
-        return redirect()->away($authorizeUrl.'?'.$query);
+        if (!empty($scopes)) {
+            $query['scope'] = implode(' ', $scopes);
+        }
+
+        return redirect()->away($authorizeUrl . '?' . http_build_query($query));
     }
 
     public function yandexCallback(Request $request)
@@ -111,16 +112,64 @@ class OauthController extends Controller
             'base_domain'   => 'required|string',
             'client_id'     => 'required|string',
             'client_secret' => 'required|string',
+            'auth_code'     => 'nullable|string',
         ]);
 
         $user = $request->user();
+
+        // сохраним креды пользователя
         \App\Models\AmoCrmCredential::updateOrCreate(
             ['user_id' => $user->id],
-            $data
+            [
+                'base_domain'   => $data['base_domain'],
+                'client_id'     => $data['client_id'],
+                'client_secret' => $data['client_secret'],
+            ]
         );
 
+        // === Без редиректа: приватная интеграция через "Код авторизации" ===
+        if (!empty($data['auth_code'])) {
+            $tokenUrl = 'https://' . $data['base_domain'] . '/oauth2/access_token';
+
+            $resp = Http::asJson()->post($tokenUrl, [
+                'client_id'     => $data['client_id'],
+                'client_secret' => $data['client_secret'],
+                'grant_type'    => 'authorization_code',
+                'code'          => $data['auth_code'],
+                'redirect_uri'  => "https://numb.my-nimb.ru/oauth/amocrm/callback", // должен совпадать с карточкой!
+            ]);
+
+            if ($resp->failed()) {
+                return back()->with('danger', 'Amo token error ['.$resp->status().']: '.$resp->body());
+            }
+
+
+            $json = $resp->json();
+
+            \App\Models\OauthToken::updateOrCreate(
+                ['user_id' => $user->id, 'provider' => \App\Enums\Provider::AMOCRM],
+                [
+                    'access_token'  => $json['access_token'] ?? null,
+                    'refresh_token' => $json['refresh_token'] ?? null,
+                    'expires_at'    => now()->addSeconds((int)($json['expires_in'] ?? 3600)),
+                    'account_id'    => $data['base_domain'],
+                    'scope'         => [],
+                ]
+            );
+
+            \App\Models\Integration::updateOrCreate(
+                ['user_id' => $user->id, 'provider' => \App\Enums\Provider::AMOCRM],
+                ['status' => \App\Enums\IntegrationStatus::CONNECTED, 'meta' => ['base_domain' => $data['base_domain']]]
+            );
+
+            return redirect()->route('filament.admin.pages.integrations')->with('success', 'AmoCRM подключён (без редиректа).');
+        }
+
+        // === Публичный OAuth (на будущее), если auth_code пуст ===
         $state = Str::uuid()->toString();
         $request->session()->put('oauth.state', $state);
+        $request->session()->put('oauth.amocrm_domain', $data['base_domain']);
+        $request->session()->put('oauth.amocrm_client_id', $data['client_id']);
 
         $authorizeUrl = 'https://' . $data['base_domain'] . '/oauth';
         $query = http_build_query([
@@ -130,8 +179,9 @@ class OauthController extends Controller
             'response_type' => 'code',
         ]);
 
-        return redirect()->away($authorizeUrl . '?' . $query);
+        return redirect()->away($authorizeUrl.'?'.$query);
     }
+
 
 
     public function amoCallback(Request $request)

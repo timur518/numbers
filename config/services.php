@@ -52,7 +52,7 @@ return [
     'amocrm' => [
         'client_id'     => env('AMO_CLIENT_ID'),
         'client_secret' => env('AMO_CLIENT_SECRET'),
-        'redirect'      => env('OAUTH_REDIRECT_BASE').'/amocrm/callback',
+        'redirect'      => 'https://numb.mi-nimb.ru/amocrm/callback',
     ],
 
 ];

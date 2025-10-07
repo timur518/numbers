@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Enums\Provider;
 use App\Models\OauthToken;
+use App\Models\AmoCrmCredential;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Http;
@@ -11,24 +12,25 @@ use Illuminate\Support\Facades\Http;
 class RefreshOauthTokens extends Command
 {
     protected $signature = 'oauth:refresh';
-    protected $description = 'Refresh OAuth tokens for Yandex and AmoCRM';
+    protected $description = 'Refresh OAuth tokens for Yandex & AmoCRM';
 
     public function handle(): int
     {
-        $now = now()->addMinutes(5); // обновляем заранее
+        $now = now()->addMinutes(5);
+
         OauthToken::query()
             ->whereNotNull('refresh_token')
             ->where('expires_at', '<', $now)
             ->chunkById(100, function ($tokens) {
-                foreach ($tokens as $token) {
+                foreach ($tokens as $t) {
                     try {
-                        match ($token->provider) {
-                            Provider::METRIKA, Provider::DIRECT => $this->refreshYandex($token),
-                            Provider::AMOCRM => $this->refreshAmo($token),
+                        match ($t->provider) {
+                            Provider::METRIKA, Provider::DIRECT => $this->refreshYandex($t),
+                            Provider::AMOCRM => $this->refreshAmo($t),
                         };
-                        $this->info("Refreshed: {$token->id} ({$token->provider->value})");
+                        $this->info("Refreshed token id={$t->id} provider={$t->provider->value}");
                     } catch (\Throwable $e) {
-                        $this->error("Failed {$token->id}: ".$e->getMessage());
+                        $this->error("Refresh failed id={$t->id}: ".$e->getMessage());
                     }
                 }
             });
@@ -51,15 +53,17 @@ class RefreshOauthTokens extends Command
         $t->save();
     }
 
-    protected function refreshAmo(\App\Models\OauthToken $t): void
+    protected function refreshAmo(OauthToken $t): void
     {
-        $creds = \App\Models\AmoCrmCredential::where('user_id', $t->user_id)->firstOrFail();
-        $resp = Http::asJson()->post('https://' . $t->account_id . '/oauth2/access_token', [
+        // перс. креды пользователя
+        $creds = AmoCrmCredential::where('user_id', $t->user_id)->firstOrFail();
+
+        $resp = Http::asJson()->post('https://'.$t->account_id.'/oauth2/access_token', [
             'client_id'     => $creds->client_id,
             'client_secret' => $creds->client_secret,
             'grant_type'    => 'refresh_token',
             'refresh_token' => $t->refresh_token,
-            'redirect_uri'  => config('services.amocrm.redirect'),
+            'redirect_uri'  => Config::get('services.amocrm.redirect'),
         ])->throw()->json();
 
         $t->access_token  = $resp['access_token'] ?? $t->access_token;
@@ -67,5 +71,4 @@ class RefreshOauthTokens extends Command
         $t->expires_at    = now()->addSeconds((int)($resp['expires_in'] ?? 3600));
         $t->save();
     }
-
 }

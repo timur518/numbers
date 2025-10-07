@@ -9,8 +9,7 @@ class Kernel extends ConsoleKernel
 {
     protected function schedule(Schedule $schedule): void
     {
-        $schedule->job(new \App\Jobs\FetchDirectStatsJob(now()->subDay()->toDateString(), now()->toDateString()))->dailyAt('03:00');
-        $schedule->job(new \App\Jobs\FetchAmoLeadsJob(now()->subDay()->toDateString(), now()->toDateString()))->dailyAt('03:10');
+        $schedule->command('oauth:refresh')->everyFifteenMinutes();
     }
 
     protected function commands(): void

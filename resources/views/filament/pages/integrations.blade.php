@@ -63,9 +63,10 @@
                     @else
                         <form method="POST" action="{{ route('oauth.amocrm.redirect') }}" class="space-y-3">
                             @csrf
-                            <x-filament::input name="base_domain" placeholder="yourportal.amocrm.ru" value="{{ old('base_domain') }}" required />
-                            <x-filament::input name="client_id" placeholder="Client ID из Amo" required />
-                            <x-filament::input type="password" name="client_secret" placeholder="Client Secret из Amo" required />
+                            <x-filament::input name="base_domain" placeholder="yourportal.amocrm.ru" required />
+                            <x-filament::input name="client_id" placeholder="ID интеграции" required />
+                            <x-filament::input type="password" name="client_secret" placeholder="Секретный ключ" required />
+                            <x-filament::input name="auth_code" placeholder="Код авторизации (20 минут)" />
                             <x-filament::button type="submit">Подключить</x-filament::button>
                         </form>
                     @endif
