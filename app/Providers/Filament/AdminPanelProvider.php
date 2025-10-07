@@ -76,6 +76,7 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
             ->widgets([
+                \App\Filament\Widgets\DirectSyncWidget::class,
             ])
             ->middleware([
                 EncryptCookies::class,

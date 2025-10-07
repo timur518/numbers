@@ -6,12 +6,14 @@ use Illuminate\Database\Eloquent\Model;
 
 class SyncRun extends Model
 {
-    //
+    protected $fillable = [
+        'status','scope','started_at','finished_at','api_units_used',
+        'campaigns_synced','ads_synced','errors_count','message','meta'
+    ];
 
-    // add fillable
-    protected $fillable = [];
-    // add guaded
-    protected $guarded = ['id'];
-    // add hidden
-    protected $hidden = ['created_at', 'updated_at'];
+    protected $casts = [
+        'started_at' => 'datetime',
+        'finished_at' => 'datetime',
+        'meta' => 'array',
+    ];
 }
