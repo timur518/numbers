@@ -26,7 +26,9 @@
                 <div class="min-w-[120px] text-right font-medium">{{ $progress }}%</div>
             </div>
 
-            <x-filament::progress-bar :value="$progress" class="h-2" />
+            <div class="w-full h-2 bg-gray-200 rounded">
+                <div class="h-2 bg-primary-600 rounded" style="width: {{ $progress }}%"></div>
+            </div>
 
             {{-- Краткая сводка по последнему запуску --}}
             <div class="grid grid-cols-2 gap-3 md:grid-cols-4">
