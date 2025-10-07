@@ -76,7 +76,7 @@ class DirectSyncRunResource extends Resource
                     ->modalWidth('5xl')
                     ->modalSubmitAction(false)
                     ->modalCancelActionLabel('Закрыть')
-                    ->modalContent(function (DirectSyncRun $record) {
+                    ->modalContent(function (SyncRun $record) {
                         $meta = json_encode($record->meta ?? [], JSON_UNESCAPED_UNICODE|JSON_PRETTY_PRINT);
                         $full = json_encode([
                             'status' => $record->status,

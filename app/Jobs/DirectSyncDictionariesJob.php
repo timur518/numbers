@@ -155,6 +155,11 @@ class DirectSyncDictionariesJob implements ShouldQueue
                 'ads_synced' => $totalAds,
                 'message' => "OK. Groups={$totalGroups}, Keywords={$totalKeywords}",
             ]);
+            $run->update(['message' => "Кампании: {$totalCampaigns}"]);      // после кампаний
+            $run->update(['message' => "Группы: {$totalGroups}"]);          // после групп
+            $run->update(['message' => "Объявления: {$totalAds}"]);         // после объявлений
+            $run->update(['message' => "Ключи: {$totalKeywords}"]);         // после ключей
+
             $this->progress($run->id, 100, "Готово. Кампаний {$totalCampaigns}, групп {$totalGroups}, объявлений {$totalAds}, ключей {$totalKeywords}.");
 
         } catch (Throwable $e) {

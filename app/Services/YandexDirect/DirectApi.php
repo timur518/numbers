@@ -6,6 +6,10 @@ use App\Models\OauthToken;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use RuntimeException;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+
+
 
 /**
  * Обёртка над Yandex Direct API v5 (JSON) + Reports API.
@@ -20,10 +24,29 @@ class DirectApi
 
     public function __construct(
         protected int $userId,
-        protected ?string $clientLogin = null, // нужен, если аккаунт-менеджер
+        protected ?string $clientLogin = 'adr16rk', // нужен, если аккаунт-менеджер
         protected string $lang = 'ru'
     ) {
-        $this->clientLogin ??= config('services.yandex.direct_client_login');
+        // 1) приоритет - явно переданный логин
+        if ($this->clientLogin) return;
+
+        // 2) из integrations.meta (provider=direct, status=connected)
+        $row = DB::table('integrations')
+            ->select('meta')
+            ->where('user_id', $this->userId)
+            ->where('provider', 'direct')
+            ->where('status', 'connected')
+            ->orderByDesc('id')
+            ->first();
+
+        $login = null;
+        if ($row && $row->meta) {
+            $meta = is_string($row->meta) ? json_decode($row->meta, true) : $row->meta;
+            $login = $meta['client_login'] ?? null;
+        }
+
+        // 3) иначе из .env (на крайний случай)
+        $this->clientLogin = $login ?: config('services.yandex.direct_client_login');
     }
 
     /* =========================== CORE =========================== */
@@ -79,6 +102,9 @@ class DirectApi
         if (!$resp->ok()) {
             throw new RuntimeException("Direct API error {$resp->status()}: " . $resp->body());
         }
+        Log::info('DirectAPI request', ['url' => $url, 'payload' => $payload]);
+        Log::info('DirectAPI units', ['units' => $units, 'status' => $resp->status()]);
+
 
         return [
             'json'  => $resp->json(),
