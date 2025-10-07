@@ -6,12 +6,6 @@ use Illuminate\Database\Eloquent\Model;
 
 class YdCampaign extends Model
 {
-    //
-
-    // add fillable
-    protected $fillable = [];
-    // add guaded
-    protected $guarded = ['id'];
-    // add hidden
-    protected $hidden = ['created_at', 'updated_at'];
+    protected $fillable = ['user_id','yd_campaign_id','name','status','currency','meta'];
+    protected $casts = ['meta' => 'array'];
 }

@@ -6,12 +6,9 @@ use Illuminate\Database\Eloquent\Model;
 
 class YdStatDaily extends Model
 {
-    //
-
-    // add fillable
-    protected $fillable = [];
-    // add guaded
-    protected $guarded = ['id'];
-    // add hidden
-    protected $hidden = ['created_at', 'updated_at'];
+    protected $fillable = [
+        'user_id','date','yd_campaign_id','yd_ad_id','yd_keyword_id',
+        'impressions','clicks','cost_micros','currency','meta'
+    ];
+    protected $casts = ['date' => 'date','meta' => 'array'];
 }

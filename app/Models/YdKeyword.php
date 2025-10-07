@@ -6,12 +6,6 @@ use Illuminate\Database\Eloquent\Model;
 
 class YdKeyword extends Model
 {
-    //
-
-    // add fillable
-    protected $fillable = [];
-    // add guaded
-    protected $guarded = ['id'];
-    // add hidden
-    protected $hidden = ['created_at', 'updated_at'];
+    protected $fillable = ['user_id','yd_keyword_id','yd_adgroup_id','yd_campaign_id','text','status','meta'];
+    protected $casts = ['meta' => 'array'];
 }
