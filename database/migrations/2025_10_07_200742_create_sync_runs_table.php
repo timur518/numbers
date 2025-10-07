@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration {
     public function up(): void
     {
-        Schema::create('direct_sync_runs', function (Blueprint $table) {
+        Schema::create('sync_runs', function (Blueprint $table) {
             $table->id();
             $table->enum('status', ['idle','running','success','failed'])->default('idle');
             $table->string('scope')->default('direct');
@@ -24,6 +24,6 @@ return new class extends Migration {
     }
     public function down(): void
     {
-        Schema::dropIfExists('direct_sync_runs');
+        Schema::dropIfExists('sync_runs');
     }
 };
