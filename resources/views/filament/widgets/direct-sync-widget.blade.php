@@ -30,32 +30,32 @@
                 <div class="h-2 bg-primary-600 rounded" style="width: {{ $progress }}%"></div>
             </div>
 
-            {{-- Краткая сводка по последнему запуску --}}
+            {{-- Краткая сводка по последнему запуску (без filament stats) --}}
             <div class="grid grid-cols-2 gap-3 md:grid-cols-4">
-                <x-filament::stats.card
-                    label="Последний запуск"
-                    :value="$lastRun?->started_at?->format('d.m.Y H:i') ?? '—'"
-                    description="Начало"
-                    icon="heroicon-m-clock"
-                />
-                <x-filament::stats.card
-                    label="Завершение"
-                    :value="$lastRun?->finished_at?->format('d.m.Y H:i') ?? '—'"
-                    description="Окончание"
-                    icon="heroicon-m-check-circle"
-                />
-                <x-filament::stats.card
-                    label="Кампаний"
-                    :value="number_format($lastRun?->campaigns_synced ?? 0, 0, ',', ' ')"
-                    description="Синхронизировано"
-                    icon="heroicon-m-rectangle-stack"
-                />
-                <x-filament::stats.card
-                    label="API Units"
-                    :value="number_format($lastRun?->api_units_used ?? 0, 0, ',', ' ')"
-                    description="Потрачено"
-                    icon="heroicon-m-cpu-chip"
-                />
+                <div class="rounded-xl border p-3">
+                    <div class="text-sm text-gray-500">Последний запуск (начало)</div>
+                    <div class="text-lg font-semibold">
+                        {{ $lastRun?->started_at?->format('d.m.Y H:i') ?? '—' }}
+                    </div>
+                </div>
+                <div class="rounded-xl border p-3">
+                    <div class="text-sm text-gray-500">Завершение</div>
+                    <div class="text-lg font-semibold">
+                        {{ $lastRun?->finished_at?->format('d.m.Y H:i') ?? '—' }}
+                    </div>
+                </div>
+                <div class="rounded-xl border p-3">
+                    <div class="text-sm text-gray-500">Кампаний (синхронизировано)</div>
+                    <div class="text-lg font-semibold">
+                        {{ number_format($lastRun?->campaigns_synced ?? 0, 0, ',', ' ') }}
+                    </div>
+                </div>
+                <div class="rounded-xl border p-3">
+                    <div class="text-sm text-gray-500">API Units (потрачено)</div>
+                    <div class="text-lg font-semibold">
+                        {{ number_format($lastRun?->api_units_used ?? 0, 0, ',', ' ') }}
+                    </div>
+                </div>
             </div>
 
             {{-- Сообщение об ошибке при fail --}}
