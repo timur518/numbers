@@ -14,3 +14,6 @@ Schedule::command('oauth:refresh')->everyFifteenMinutes();
 
 // ежечасовой импорт статистики Яндекс.Директ
 Schedule::command('direct:sync --days=14')->hourly()->runInBackground();
+
+// ночной полный синк Директа
+Schedule::command('direct:sync')->dailyAt('03:30')->withoutOverlapping()->onOneServer()->runInBackground();
