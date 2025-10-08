@@ -21,17 +21,33 @@ class SyncDirectDailyReport implements ShouldQueue
     {
         $client = $client ?: YandexDirectClient::forUser($this->userId);
         $run = SyncRun::create([
-            'user_id' => $this->userId, 'provider' => 'direct', 'job' => 'report',
-            'status' => 'ok', 'message' => null, 'affected_rows' => 0,
+            'user_id' => $this->userId,
+            'provider' => 'direct',
+            'scope' => 'direct',
+            'job' => 'report',
+            'status' => 'running',
+            'started_at' => now(),
+            'progress' => 0,
+            'message' => "Отчёт {$this->from}..{$this->to}",
         ]);
 
         try {
             $tsv = $client->dailyReport($this->from, $this->to);
             $importer = app(DirectReportImporter::class);
             $affected = $importer->importTsv($this->userId, $tsv);
-            $run->update(['affected_rows' => $affected, 'message' => "Imported {$affected} rows"]);
+            $run->update([
+                'status' => 'success',
+                'finished_at' => now(),
+                'progress' => 100,
+                'affected_rows' => $affected,
+                'message' => "Imported {$affected} rows",
+            ]);
         } catch (\Throwable $e) {
-            $run->update(['status' => 'error', 'message' => $e->getMessage()]);
+            $run->update([
+                'status' => 'failed',
+                'finished_at' => now(),
+                'message' => $e->getMessage(),
+            ]);
             throw $e;
         }
     }

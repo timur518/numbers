@@ -2,11 +2,12 @@
 
 namespace App\Filament\Widgets;
 
-use App\Models\DirectSyncRun;
+use App\Models\SyncRun;
 use Filament\Actions\Action;
 use Filament\Widgets\Widget;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Auth;
 
 class DirectSyncWidget extends Widget
 {
@@ -17,7 +18,7 @@ class DirectSyncWidget extends Widget
     protected static ?string $heading = 'Яндекс.Директ — Синхронизация';
 
     public ?array $state = null;
-    public ?DirectSyncRun $lastRun = null;
+    public ?SyncRun $lastRun = null;
 
     public function mount(): void
     {
@@ -26,13 +27,18 @@ class DirectSyncWidget extends Widget
 
     public function refreshState(): void
     {
-        $this->state = Cache::get('direct.sync.status') ?: [
+        $cacheKey = $this->cacheKey();
+        $this->state = Cache::get($cacheKey) ?: [
             'status' => 'idle',
             'progress' => 0,
             'message' => 'Ожидание запуска',
             'updated_at' => now()->toIso8601String(),
         ];
-        $this->lastRun = DirectSyncRun::query()->latest('id')->first();
+        $this->lastRun = SyncRun::query()
+            ->where('user_id', Auth::id())
+            ->where('provider', 'direct')
+            ->latest('id')
+            ->first();
     }
 
     protected function getHeaderActions(): array
@@ -43,7 +49,16 @@ class DirectSyncWidget extends Widget
                 ->icon('heroicon-m-play')
                 ->color('primary')
                 ->action(function () {
-                    Artisan::call('direct:sync');
+                    $userId = Auth::id();
+                    if (!$userId) {
+                        return;
+                    }
+
+                    Artisan::call('direct:sync', [
+                        '--user_id' => [$userId],
+                        '--dicts' => true,
+                        '--stats' => true,
+                    ]);
                     $this->refreshState();
                 })
                 ->disabled(fn () => ($this->state['status'] ?? 'idle') === 'running'),
@@ -64,5 +79,11 @@ class DirectSyncWidget extends Widget
                 ->color('gray')
                 ->action(fn () => $this->refreshState()),
         ];
+    }
+
+    protected function cacheKey(): string
+    {
+        $userId = Auth::id() ?: 'guest';
+        return "direct.sync.status.{$userId}";
     }
 }

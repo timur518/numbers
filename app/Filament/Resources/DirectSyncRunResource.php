@@ -29,6 +29,7 @@ class DirectSyncRunResource extends Resource
                         'running' => 'warning',
                         'success' => 'success',
                         'failed'  => 'danger',
+                        'queued'  => 'gray',
                         default   => 'gray',
                     })
                     ->label('Статус')
@@ -49,7 +50,7 @@ class DirectSyncRunResource extends Resource
                         'running' => 'running',
                         'success' => 'success',
                         'failed'  => 'failed',
-                        'idle'    => 'idle',
+                        'queued'  => 'queued',
                     ])->label('Статус'),
                 Tables\Filters\Filter::make('date')
                     ->form([

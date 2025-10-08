@@ -17,6 +17,7 @@ return new class extends Migration {
             $t->unsignedInteger('clicks')->default(0);
             $t->unsignedBigInteger('cost_micros')->default(0); // стоимость в микросах
             $t->string('currency', 10)->nullable();
+            $t->json('meta')->nullable();
             $t->timestamps();
 
             $t->unique(['user_id','date','yd_campaign_id','yd_ad_id','yd_keyword_id'], 'yd_stats_daily_uniq');
