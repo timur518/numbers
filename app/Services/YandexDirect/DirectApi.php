@@ -231,9 +231,9 @@ class DirectApi
     public function reportDailyStats(string $dateFrom, string $dateTo, string $level = 'CAMPAIGN'): array
     {
         $defFields = match (Str::upper($level)) {
-            'AD'      => ['Date', 'CampaignId', 'AdId', 'Impressions', 'Clicks', 'Cost'],
-            'KEYWORD' => ['Date', 'CampaignId', 'CriteriaId', 'Impressions', 'Clicks', 'Cost'],
-            default   => ['Date', 'CampaignId', 'Impressions', 'Clicks', 'Cost'],
+            'AD'      => ['Date', 'CampaignId', 'AdId', 'Impressions', 'Clicks', 'Cost', 'Currency'],
+            'KEYWORD' => ['Date', 'CampaignId', 'CriteriaId', 'Impressions', 'Clicks', 'Cost', 'Currency'],
+            default   => ['Date', 'CampaignId', 'Impressions', 'Clicks', 'Cost', 'Currency'],
         };
 
         $body = [

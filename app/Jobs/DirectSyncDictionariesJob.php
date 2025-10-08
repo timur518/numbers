@@ -26,7 +26,13 @@ class DirectSyncDictionariesJob implements ShouldQueue
     public function handle(): void
     {
         $run = SyncRun::create([
-            'status' => 'running', 'scope' => 'direct-dicts', 'started_at' => now(),
+            'user_id' => $this->userId,
+            'provider' => 'direct',
+            'scope' => 'direct',
+            'job' => 'dictionaries',
+            'status' => 'running',
+            'started_at' => now(),
+            'progress' => 0,
         ]);
 
         $this->progress($run->id, 0, 'Кампании…');
@@ -151,19 +157,24 @@ class DirectSyncDictionariesJob implements ShouldQueue
             $run->update([
                 'status' => 'success',
                 'finished_at' => now(),
+                'progress' => 100,
                 'campaigns_synced' => $totalCampaigns,
                 'ads_synced' => $totalAds,
                 'message' => "OK. Groups={$totalGroups}, Keywords={$totalKeywords}",
+                'meta' => [
+                    'groups_synced' => $totalGroups,
+                    'keywords_synced' => $totalKeywords,
+                ],
             ]);
-            $run->update(['message' => "Кампании: {$totalCampaigns}"]);      // после кампаний
-            $run->update(['message' => "Группы: {$totalGroups}"]);          // после групп
-            $run->update(['message' => "Объявления: {$totalAds}"]);         // после объявлений
-            $run->update(['message' => "Ключи: {$totalKeywords}"]);         // после ключей
 
             $this->progress($run->id, 100, "Готово. Кампаний {$totalCampaigns}, групп {$totalGroups}, объявлений {$totalAds}, ключей {$totalKeywords}.");
 
         } catch (Throwable $e) {
-            $run->update(['status'=>'failed','finished_at'=>now(),'message'=>$e->getMessage()]);
+            $run->update([
+                'status' => 'failed',
+                'finished_at' => now(),
+                'message' => $e->getMessage(),
+            ]);
             $this->progress($run->id, 0, 'Ошибка: '.$e->getMessage());
             throw $e;
         }
@@ -171,12 +182,23 @@ class DirectSyncDictionariesJob implements ShouldQueue
 
     protected function progress(int $runId, int $pct, string $msg): void
     {
-        Cache::put('direct.sync.status', [
+        SyncRun::whereKey($runId)->update([
+            'progress' => $pct,
+            'message' => $msg,
+            'updated_at' => now(),
+        ]);
+
+        Cache::put($this->cacheKey(), [
             'status' => $pct < 100 && $pct > 0 ? 'running' : ($pct === 100 ? 'success' : 'idle'),
             'run_id' => $runId,
             'progress' => $pct,
             'message' => $msg,
             'updated_at' => now()->toIso8601String(),
         ], now()->addHour());
+    }
+
+    protected function cacheKey(): string
+    {
+        return "direct.sync.status.{$this->userId}";
     }
 }

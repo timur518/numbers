@@ -19,11 +19,10 @@ Route::middleware(['auth'])->group(function () {
         ->name('oauth.amocrm.callback');
     Route::post('/oauth/amocrm/redirect', [OauthController::class, 'amoRedirect'])
         ->name('oauth.amocrm.redirect');
-    Route::post('/webhooks/amocrm', [\App\Http\Controllers\Webhooks\AmoWebhookController::class, 'handle']);
-
-
     // Отключение интеграций
     Route::post('/integrations/disconnect/{provider}', [OauthController::class, 'disconnect'])
         ->whereIn('provider', ['metrika','direct','amocrm'])
         ->name('integrations.disconnect');
 });
+
+Route::post('/webhooks/amocrm', [\App\Http\Controllers\Webhooks\AmoWebhookController::class, 'handle']);

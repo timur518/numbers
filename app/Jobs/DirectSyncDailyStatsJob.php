@@ -25,7 +25,14 @@ class DirectSyncDailyStatsJob implements ShouldQueue
     public function handle(): void
     {
         $run = SyncRun::create([
-            'status' => 'running', 'scope' => 'direct-stats', 'started_at' => now(),
+            'user_id' => $this->userId,
+            'provider' => 'direct',
+            'scope' => 'direct',
+            'job' => 'daily-stats',
+            'status' => 'running',
+            'started_at' => now(),
+            'progress' => 0,
+            'message' => "Отчёт {$this->dateFrom}..{$this->dateTo}",
         ]);
         $this->progress($run->id, 0, "Отчёт {$this->dateFrom}..{$this->dateTo}");
 
@@ -43,14 +50,13 @@ class DirectSyncDailyStatsJob implements ShouldQueue
                     $up[] = [
                         'user_id'        => $this->userId,
                         'date'           => $r['Date'],
-                        'yd_campaign_id' => (int)$r['CampaignId'],
+                        'yd_campaign_id' => (int)($r['CampaignId'] ?? 0),
                         'yd_ad_id'       => (int)($r['AdId'] ?? 0) ?: null,
                         'yd_keyword_id'  => null, // при желании второй прогон на KEYWORD
                         'impressions'    => (int)($r['Impressions'] ?? 0),
                         'clicks'         => (int)($r['Clicks'] ?? 0),
                         'cost_micros'    => (int)round((float)($r['Cost'] ?? 0)), // уже в micros
-                        'currency'       => 'RUB', // или парсить из аккаунта/кампании
-                        'meta'           => null,
+                        'currency'       => $r['Currency'] ?? 'RUB',
                         'created_at'     => now(),
                         'updated_at'     => now(),
                     ];
@@ -69,12 +75,18 @@ class DirectSyncDailyStatsJob implements ShouldQueue
             $run->update([
                 'status' => 'success',
                 'finished_at' => now(),
+                'progress' => 100,
+                'affected_rows' => $total,
                 'message' => "Строк загружено: {$total}",
             ]);
             $this->progress($run->id, 100, "Готово. Строк: {$total}");
 
         } catch (Throwable $e) {
-            $run->update(['status'=>'failed','finished_at'=>now(),'message'=>$e->getMessage()]);
+            $run->update([
+                'status' => 'failed',
+                'finished_at' => now(),
+                'message' => $e->getMessage(),
+            ]);
             $this->progress($run->id, 0, 'Ошибка: '.$e->getMessage());
             throw $e;
         }
@@ -82,12 +94,23 @@ class DirectSyncDailyStatsJob implements ShouldQueue
 
     protected function progress(int $runId, int $pct, string $msg): void
     {
-        Cache::put('direct.sync.status', [
+        SyncRun::whereKey($runId)->update([
+            'progress' => $pct,
+            'message' => $msg,
+            'updated_at' => now(),
+        ]);
+
+        Cache::put($this->cacheKey(), [
             'status' => $pct < 100 && $pct > 0 ? 'running' : ($pct === 100 ? 'success' : 'idle'),
             'run_id' => $runId,
             'progress' => $pct,
             'message' => $msg,
             'updated_at' => now()->toIso8601String(),
         ], now()->addHour());
+    }
+
+    protected function cacheKey(): string
+    {
+        return "direct.sync.status.{$this->userId}";
     }
 }
